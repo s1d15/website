@@ -79,7 +79,7 @@ services:
     image: nginx:latest
     restart: always
     ports:
-      - "8080:80" # Different port for development
+      - "8081:80" # Different port for development
     volumes:
       # Use named volumes (read-only)
       - staticfiles:/app/static:ro
