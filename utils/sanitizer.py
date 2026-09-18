@@ -16,7 +16,7 @@ def clean_html(value: str) -> str:
     return nh3.clean(
         value,
         tags={"b", "i", "u", "em", "strong", "a", "p", "ul", "ol", "li"},
-        attributes={"a": ["href", "title"]}
+        attributes={"a": {"href", "title"}}
     )
 
 def clean_url(value: str) -> str:
