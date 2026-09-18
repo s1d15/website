@@ -1,6 +1,6 @@
 import json
 
-from utils.init_chrome_driver import init_driver
+from .utils.init_chrome_driver import init_driver
 
 # This code automatically test urls by using HTTP POST method
 # usage: python test_post_requests.py

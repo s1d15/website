@@ -1,15 +1,19 @@
 import json
 import time
+from pathlib import Path
 
-from utils.init_chrome_driver import init_driver
+from .utils.init_chrome_driver import init_driver
 
 # Test each url and check whether it support HTTP POST method
 # URL list
 # To get the latest url list, execute this command under the root directory: python manage.py show_urls | awk '{print "http://localhost:8000" $1}' | cut -d' ' -f1 > home/tests/logs/url_list.txt
-with open ("logs/url_list.txt", "r", encoding="utf-8") as f:
+TEST_DIR = Path(__file__).resolve().parent
+LOG_DIR = TEST_DIR / "logs"
+
+with open(LOG_DIR / "url_list.txt", "r", encoding="utf-8") as f:
     TEST_URLS = [line.strip() for line in f if line.strip()]
     
-OUTPUT_FILE = "logs/selenium_test_results.json"
+OUTPUT_FILE = LOG_DIR / "selenium_test_results.json"
 
 
 def test_post_support():

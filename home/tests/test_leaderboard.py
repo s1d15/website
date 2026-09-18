@@ -18,7 +18,7 @@ from django.test import TestCase
 #xss_detection("hello")
 
 #Testing LeaderBoard
-from .models import LeaderBoardTable, User
+from home.models import LeaderBoardTable, User
 
 class LeaderboardTestCase(TestCase):
     def setUp(self):
