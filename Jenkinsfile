@@ -50,5 +50,13 @@ pipeline {
             '''
             }
         }
+
+        stage('Deploy') {
+            steps {
+                bat 'docker compose -p hardhat-staging -f docker-compose.staging.yml up -d'
+
+                bat 'curl --fail --retry 12 --retry-delay 5 http://localhost:8082'
+            }
+        }
     }
 }
