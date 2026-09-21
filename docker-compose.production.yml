@@ -1,0 +1,82 @@
+services:
+  db:
+    image: postgres:17.5
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: hardhat_production
+      POSTGRES_USER: hardhat_user
+      POSTGRES_PASSWORD: hardhat_password
+      POSTGRES_INITDB_ARGS: "--auth-host=md5 --auth-local=trust"
+    volumes:
+      - postgres_production_data:/var/lib/postgresql/data
+    networks:
+      - production_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hardhat_user -d hardhat_production"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    image: hardhat-website:${IMAGE_TAG:-ci}
+    restart: unless-stopped
+
+    environment:
+      DEBUG: "0"
+
+      # Temporary for first complete pipeline pass.
+      # We will move this to Jenkins Credentials later.
+      SECRET_KEY: jenkins-production-secret-key
+
+      DB_ENGINE: postgresql
+      DB_NAME: hardhat_production
+      DB_USERNAME: hardhat_user
+      DB_PASS: hardhat_password
+      DB_HOST: db
+      DB_PORT: "5432"
+
+      PYTHONUNBUFFERED: "1"
+      DJANGO_SETTINGS_MODULE: core.settings
+
+    volumes:
+      - staticfiles_production:/app/static
+      - mediafiles_production:/app/media
+
+    networks:
+      - production_network
+
+    depends_on:
+      db:
+        condition: service_healthy
+
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py collectstatic --noinput &&
+             python manage.py runserver 0.0.0.0:8000 --insecure"
+
+  nginx:
+    image: nginx:latest
+    restart: unless-stopped
+
+    ports:
+      - "8083:80"
+
+    volumes:
+      - staticfiles_production:/app/static:ro
+      - mediafiles_production:/app/media:ro
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+
+    networks:
+      - production_network
+
+    depends_on:
+      - web
+
+networks:
+  production_network:
+    driver: bridge
+
+volumes:
+  staticfiles_production:
+  mediafiles_production:
+  postgres_production_data:

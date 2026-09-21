@@ -58,5 +58,29 @@ pipeline {
                 bat 'curl --fail --retry 12 --retry-delay 5 http://localhost:8082'
             }
         }
+
+        stage('Release') {
+            steps {
+                script {
+                    env.RELEASE_TAG = "release-${env.BUILD_NUMBER}"
+                }
+
+                bat 'docker tag hardhat-website:ci hardhat-website:%RELEASE_TAG%'
+
+                bat '''
+                    set IMAGE_TAG=%RELEASE_TAG%&& docker compose ^
+                    -p hardhat-production ^
+                    -f docker-compose.production.yml ^
+                    up -d
+                '''
+
+                bat '''
+                    curl --fail ^
+                    --retry 12 ^
+                    --retry-delay 5 ^
+                    http://localhost:8083/
+                '''
+            }
+        }
     }
 }
