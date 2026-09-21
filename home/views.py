@@ -185,6 +185,7 @@ import difflib
 from django.utils.dateparse import parse_date
 import re
 
+EXTERNAL_REQUEST_TIMEOUT = 10
 
 def get_login_redirect_url(user):
     """
@@ -624,7 +625,8 @@ def login_with_otp(request):
 
         recaptcha_response = requests.post(
             'https://www.google.com/recaptcha/api/siteverify',
-            data={'secret': secret_key, 'response': token}
+            data={'secret': secret_key, 'response': token},
+            timeout=EXTERNAL_REQUEST_TIMEOUT
         )
 
         result = recaptcha_response.json()
@@ -1391,7 +1393,7 @@ def microsoft_login(request):
             'Content-Type': 'application/json'
         }
         
-        response = requests.get(graph_url, headers=headers)
+        response = requests.get(graph_url, headers=headers, timeout=EXTERNAL_REQUEST_TIMEOUT)
         if response.status_code != 200:
             return JsonResponse({'error': 'Invalid access token'}, status=401)
 
@@ -1583,7 +1585,7 @@ def microsoft_oauth_callback(request):
         }
         
         print(f"DEBUG: Requesting access token...")
-        token_response = requests.post(token_url, data=token_data)
+        token_response = requests.post(token_url, data=token_data, timeout=EXTERNAL_REQUEST_TIMEOUT)
         
         if token_response.status_code != 200:
             print(f"DEBUG: Token request failed - redirecting to dashboard anyway")
@@ -1601,7 +1603,7 @@ def microsoft_oauth_callback(request):
         headers = {'Authorization': f'Bearer {access_token}'}
         
         print(f"DEBUG: Requesting user info...")
-        user_response = requests.get(user_info_url, headers=headers)
+        user_response = requests.get(user_info_url, headers=headers, timeout=EXTERNAL_REQUEST_TIMEOUT)
         
         if user_response.status_code != 200:
             print(f"DEBUG: User info request failed - redirecting to dashboard anyway")
