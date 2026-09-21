@@ -15,5 +15,15 @@ pipeline {
                 bat 'if exist coverage.xml (echo coverage.xml FOUND) else (echo coverage.xml MISSING & exit /b 1)'
             }
         }
+        stage('Code Quality') {
+            steps {
+                script {
+                    def scannerHome = tool 'SonarScanner'
+
+                    withSonarQubeEnv('SonarQube') {
+                        bat '\"${scannerHome}\\bin\\sonar-scanner.bat\"'
+                    }
+                }
+            }
     }
 }
