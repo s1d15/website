@@ -82,5 +82,17 @@ pipeline {
                 '''
             }
         }
+
+        stage('Monitoring') {
+            steps {
+                bat 'docker compose -p hardhat-monitoring -f docker-compose.monitoring.yml up -d'
+
+                bat 'curl --fail --retry 12 --retry-delay 5 http://localhost:9090/-/healthy'
+
+                bat 'curl --fail --retry 12 --retry-delay 5 htt://localhost:3000/api/health'
+
+                bat 'curl -s "http://localhost:9115/probe?target=http://nginx:80/&module=http_2xx" | findstr /C:"probe_success 1"'
+            }
+        }
     }
 }

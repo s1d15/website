@@ -1,0 +1,36 @@
+global:
+  scrape_interval: 10s
+  evaluation_interval: 10s
+
+scrape_configs:
+  # Monitor Prometheus itself
+  - job_name: "prometheus"
+    static_configs:
+      - targets:
+          - "prometheus:9090"
+
+  # Monitor the production website through Blackbox Exporter
+  - job_name: "production-http"
+
+    metrics_path: /probe
+
+    params:
+      module:
+        - http_2xx
+
+    static_configs:
+      - targets:
+          - "http://nginx:80/"
+
+    relabel_configs:
+      # Pass nginx:80 as the target Blackbox should probe
+      - source_labels: [__address__]
+        target_label: __param_target
+
+      # Show the actual monitored URL in Prometheus
+      - source_labels: [__param_target]
+        target_label: instance
+
+      # Send the request to Blackbox Exporter
+      - target_label: __address__
+        replacement: blackbox:9115
