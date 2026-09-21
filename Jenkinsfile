@@ -35,5 +35,11 @@ pipeline {
                 }
             }
         }
+
+        stage('Security') {
+            steps {
+                bat 'docker compose run --rm -e SECRET_KEY=jenkins-test-secret-key web bandit -r home utils -x home/tests -ll'
+            }
+        }
     }
 }
