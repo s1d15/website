@@ -40,3 +40,5 @@ custom_static/assets/videos/
 custom_static/assets/img/
 
 .coverage
+coverage.xml
+htmlcov/
