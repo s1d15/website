@@ -18,13 +18,14 @@ pipeline {
         stage('Code Quality') {
             steps {
                 script {
-                    def scannerHome = tool 'SonarScanner'
+                    env.SCANNER_HOME = tool 'SonarScanner'
+                }
 
-                    withSonarQubeEnv('SonarQube') {
-                        bat '\"${scannerHome}\\bin\\sonar-scanner.bat\"'
-                    }
+                withSonarQubeEnv('SonarQube') {
+                    bat 'echo SonarScanner location: %SCANNER_HOME%'
+                    bat '"%SCANNER_HOME%\\bin\\sonar-scanner.bat"'
                 }
             }
-       }
+        }
     }
 }
