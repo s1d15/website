@@ -28,6 +28,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    image: hardhat-website:ci
     restart: "no" # Don't auto-restart in development to maintain sessions
     volumes:
       - .:/app
