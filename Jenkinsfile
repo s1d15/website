@@ -39,6 +39,17 @@ pipeline {
         stage('Security') {
             steps {
                 bat 'docker compose run --rm -e SECRET_KEY=jenkins-test-secret-key web bandit -r home utils -x home/tests -ll'
+
+                bat 'for /f %%i in ('docker compose images -q web') do docker tag %%i hardhat-website:ci'
+
+                bat '''
+                    docker run --rm ^
+                    -v /var/run/docker.sock:/var/run/docker.sock ^
+                    aquasec/trivy:0.74.0 ^
+                    image ^
+                    --severity HIGH,CRITICAL ^
+                    hardhat-website:ci
+            '''
             }
         }
     }
