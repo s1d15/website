@@ -89,7 +89,7 @@ pipeline {
 
                 bat 'curl --fail --retry 12 --retry-delay 5 http://localhost:9090/-/healthy'
 
-                bat 'curl --fail --retry 12 --retry-delay 5 htt://localhost:3000/api/health'
+                bat 'curl --fail --retry 12 --retry-delay 5 http://localhost:3000/api/health'
 
                 bat 'curl -s "http://localhost:9115/probe?target=http://nginx:80/&module=http_2xx" | findstr /C:"probe_success 1"'
             }
