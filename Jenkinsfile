@@ -107,22 +107,6 @@ pipeline {
             }
         }
 
-            post {
-                always {
-                    junit(
-                        testResults: 'TEST-*.xml',
-                        allowEmptyResults: true
-                    )
-
-                    archiveArtifacts(
-                        artifacts: 'coverage.xml',
-                        fingerprint: true,
-                        allowEmptyArchive: true
-                    )
-                }
-            }
-        }
-
         stage('Quality Gate') {
             steps {
                 timeout(time: 5, unit: 'MINUTES') {
