@@ -129,7 +129,7 @@ pipeline {
 
                     bat 'curl --fail --retry 12 --retry-delay 5 --retry-all-errors http://localhost:8083/'
                 }
-                
+
                 bat '''
                     @echo Jenkins Build: %BUILD_NUMBER%> release-info.txt
                     @echo Git Commit: %GIT_COMMIT_SHORT%>> release-info.txt
@@ -148,9 +148,9 @@ pipeline {
             steps {
                 bat 'docker compose -p hardhat-monitoring -f docker-compose.monitoring.yml up -d'
 
-                bat 'curl --fail --retry 12 --retry-delay 5 http://localhost:9090/-/healthy'
+                bat 'curl --fail --retry 12 --retry-delay 5 --retry-all-errors http://localhost:9090/-/ready'
 
-                bat 'curl --fail --retry 12 --retry-delay 5 http://localhost:3000/api/health'
+                bat 'curl --fail --retry 12 --retry-delay 5 --retry-all-errors http://localhost:3000/api/health'
 
                 bat 'curl -s "http://localhost:9115/probe?target=http://nginx:80/&module=http_2xx" | findstr /C:"probe_success 1"'
             }
