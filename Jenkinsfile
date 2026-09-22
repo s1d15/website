@@ -53,12 +53,21 @@ pipeline {
                     if exist coverage.xml del /q coverage.xml
                 '''
 
-                bat 'docker compose up -d db'
-
-                bat 'docker compose run --rm web python -m coverage erase'
+                bat '''
+                    docker compose up -d db
+                '''
 
                 bat '''
-                    docker compose run --rm web ^
+                    docker compose run --rm ^
+                    -e SECRET_KEY=jenkins-test-secret-key ^
+                    web ^
+                    python -m coverage erase
+                '''
+
+                bat '''
+                    docker compose run --rm ^
+                    -e SECRET_KEY=jenkins-test-secret-key ^
+                    web ^
                     python -m coverage run ^
                     --source=home,utils ^
                     manage.py test ^
@@ -67,10 +76,36 @@ pipeline {
                     --testrunner=xmlrunner.extra.djangotestrunner.XMLTestRunner
                 '''
 
-                bat 'docker compose run --rm web python -m coverage report -m --fail-under=28'
+                bat '''
+                    docker compose run --rm ^
+                    -e SECRET_KEY=jenkins-test-secret-key ^
+                    web ^
+                    python -m coverage report -m --fail-under=28
+                '''
 
-                bat 'docker compose run --rm web python -m coverage xml -o /app/coverage.xml'
+                bat '''
+                    docker compose run --rm ^
+                    -e SECRET_KEY=jenkins-test-secret-key ^
+                    web ^
+                    python -m coverage xml -o /app/coverage.xml
+                '''
             }
+
+            post {
+                always {
+                    junit(
+                        testResults: 'TEST-*.xml',
+                        allowEmptyResults: true
+                    )
+
+                    archiveArtifacts(
+                        artifacts: 'coverage.xml',
+                        fingerprint: true,
+                        allowEmptyArchive: true
+                    )
+                }
+            }
+        }
 
             post {
                 always {
