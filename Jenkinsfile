@@ -91,9 +91,16 @@ pipeline {
 
         stage('Deploy') {
             steps {
-                bat 'docker compose -p hardhat-staging -f docker-compose.staging.yml up -d'
+                echo "Deploying ${env.REGISTRY_IMAGE} to staging"
 
-                bat 'curl --fail --retry 12 --retry-delay 5 http://localhost:8082'
+                withEnv(["DEPLOY_IMAGE=${env.REGISTRY_IMAGE}"]) {
+
+                    bat 'docker pull %DEPLOY_IMAGE%'
+
+                    bat 'docker compose -p hardhat-staging -f docker-compose.staging.yml up -d --no-build'
+
+                    bat 'curl --fail --retry 12 --retry-delay 5 --retry-all-errors http://localhost:8082/'
+                }
             }
         }
 
@@ -101,23 +108,39 @@ pipeline {
             steps {
                 script {
                     env.RELEASE_TAG = "release-${env.BUILD_NUMBER}"
+
+                    env.RELEASE_IMAGE = "localhost:5000/hardhat-website:${env.RELEASE_TAG}"
+
+                    echo "Promoting ${env.REGISTRY_IMAGE}"
+                    echo "Release image: ${env.RELEASE_IMAGE}"
                 }
 
-                bat 'docker tag hardhat-website:ci hardhat-website:%RELEASE_TAG%'
+                bat 'docker pull %REGISTRY_IMAGE%'
 
+                bat 'docker tag %REGISTRY_IMAGE% %RELEASE_IMAGE%'
+
+                bat 'docker push %RELEASE_IMAGE%'
+
+                withEnv(["DEPLOY_IMAGE=${env.RELEASE_IMAGE}"]) {
+
+                    bat 'docker pull %DEPLOY_IMAGE%'
+
+                    bat 'docker compose -p hardhat-production -f docker-compose.production.yml up -d --no-build'
+
+                    bat 'curl --fail --retry 12 --retry-delay 5 --retry-all-errors http://localhost:8083/'
+                }
+                
                 bat '''
-                    set IMAGE_TAG=%RELEASE_TAG%&& docker compose ^
-                    -p hardhat-production ^
-                    -f docker-compose.production.yml ^
-                    up -d
+                    @echo Jenkins Build: %BUILD_NUMBER%> release-info.txt
+                    @echo Git Commit: %GIT_COMMIT_SHORT%>> release-info.txt
+                    @echo Source Artifact: %REGISTRY_IMAGE%>> release-info.txt
+                    @echo Release Artifact: %RELEASE_IMAGE%>> release-info.txt
+                    @docker image inspect ^
+                    %RELEASE_IMAGE% ^
+                    --format "Image ID: {{.Id}}" >> release-info.txt
                 '''
 
-                bat '''
-                    curl --fail ^
-                    --retry 12 ^
-                    --retry-delay 5 ^
-                    http://localhost:8083/
-                '''
+                archiveArtifacts(artifacts: 'release-info.txt',fingerprint: true)
             }
         }
 
