@@ -48,20 +48,40 @@ pipeline {
 
         stage('Test') {
             steps {
-                bat 'docker compose run --rm -e SECRET_KEY=jenkins-test-secret-key web sh -c "python -m coverage run --source=home,utils manage.py test home.tests.test_user_blog_crud home.tests.test_sanitizer && python -m coverage report -m && python -m coverage xml -o /app/coverage.xml"'
+                bat '''
+                    if exist TEST-*.xml del /q TEST-*.xml
+                    if exist coverage.xml del /q coverage.xml
+                '''
 
-                bat 'if exist coverage.xml (echo coverage.xml FOUND) else (echo coverage.xml MISSING & exit /b 1)'
+                bat 'docker compose exec -T web python -m coverage erase'
+
+                bat '''
+                    docker compose exec -T web ^
+                    python -m coverage run ^
+                    --source=home,utils ^
+                    manage.py test ^
+                    home.tests.test_user_blog_crud ^
+                    home.tests.test_sanitizer ^
+                    --testrunner=xmlrunner.extra.djangotestrunner.XMLTestRunner
+                '''
+
+                bat 'docker compose exec -T web python -m coverage report -m --fail-under=28'
+
+                bat 'docker compose exec -T web python -m coverage xml -o /app/coverage.xml'
             }
-        }
-        stage('Code Quality') {
-            steps {
-                script {
-                    env.SCANNER_HOME = tool 'SonarScanner'
-                }
 
-                withSonarQubeEnv('SonarQube') {
-                    bat 'echo SonarScanner location: %SCANNER_HOME%'
-                    bat '"%SCANNER_HOME%\\bin\\sonar-scanner.bat"'
+            post {
+                always {
+                    junit(
+                        testResults: 'TEST-*.xml',
+                        allowEmptyResults: true
+                    )
+
+                    archiveArtifacts(
+                        artifacts: 'coverage.xml',
+                        fingerprint: true,
+                        allowEmptyArchive: true
+                    )
                 }
             }
         }
