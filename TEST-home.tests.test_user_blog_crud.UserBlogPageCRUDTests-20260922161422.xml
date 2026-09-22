@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="home.tests.test_user_blog_crud.UserBlogPageCRUDTests-20260922161422" tests="4" file="home/tests/test_user_blog_crud.py" time="0.247" timestamp="2026-09-22T16:14:22" failures="0" errors="0" skipped="0">
+	<testcase classname="home.tests.test_user_blog_crud.UserBlogPageCRUDTests" name="test_create_blog" time="0.014" timestamp="2026-09-22T16:14:22" file="home/tests/test_user_blog_crud.py" line="5"/>
+	<testcase classname="home.tests.test_user_blog_crud.UserBlogPageCRUDTests" name="test_delete_blog" time="0.163" timestamp="2026-09-22T16:14:22" file="home/tests/test_user_blog_crud.py" line="32"/>
+	<testcase classname="home.tests.test_user_blog_crud.UserBlogPageCRUDTests" name="test_read_blog" time="0.061" timestamp="2026-09-22T16:14:22" file="home/tests/test_user_blog_crud.py" line="11"/>
+	<testcase classname="home.tests.test_user_blog_crud.UserBlogPageCRUDTests" name="test_update_blog" time="0.010" timestamp="2026-09-22T16:14:22" file="home/tests/test_user_blog_crud.py" line="19"/>
+</testsuite>

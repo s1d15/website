@@ -180,7 +180,7 @@ pipeline {
             post {
                 always {
                     archiveArtifacts(
-                        artifacts: 'bandit-report.json,trivy-report.json',
+                        artifacts: 'bandit-report.json,trivy-report.json,security-review.md',
                         fingerprint: true,
                         allowEmptyArchive: true
                     )

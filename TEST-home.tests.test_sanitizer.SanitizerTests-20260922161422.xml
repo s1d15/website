@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="home.tests.test_sanitizer.SanitizerTests-20260922161422" tests="1" file="home/tests/test_sanitizer.py" time="0.002" timestamp="2026-09-22T16:14:22" failures="0" errors="0" skipped="0">
+	<testcase classname="home.tests.test_sanitizer.SanitizerTests" name="test_clean_html_removes_unsafe_html" time="0.002" timestamp="2026-09-22T16:14:22" file="home/tests/test_sanitizer.py" line="5"/>
+</testsuite>
