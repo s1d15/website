@@ -12,26 +12,37 @@ pipeline {
 
                     env.IMAGE_VERSION = "build-${env.BUILD_NUMBER}-${env.GIT_COMMIT_SHORT}"
 
+                    env.REGISTRY_IMAGE = "localhost:5000/hardhat-website:${env.IMAGE_VERSION}"
+
                     echo "Building image version: ${env.IMAGE_VERSION}"
+                    echo "Registry artifact: ${env.REGISTRY_IMAGE}"
                 }
+
+                bat 'docker compose -p hardhat-registry -f docker-compose.registry.yml up -d'
+
+                bat 'curl --fail --retry 10 --retry-delay 2 --retry-all-errors http://localhost:5000/v2/'
 
                 bat 'docker compose build web'
 
                 bat 'docker tag hardhat-website:ci hardhat-website:%IMAGE_VERSION%'
 
+                bat 'docker tag hardhat-website:%IMAGE_VERSION% localhost:5000/hardhat-website:%IMAGE_VERSION%'
+
+                bat 'docker push localhost:5000/hardhat-website:%IMAGE_VERSION%'
+
                 bat '''
                     @echo Jenkins Build: %BUILD_NUMBER%> build-info.txt
                     @echo Git Commit: %GIT_COMMIT_SHORT%>> build-info.txt
                     @echo Docker Image: hardhat-website:%IMAGE_VERSION%>> build-info.txt
+                    @echo Registry Image: localhost:5000/hardhat-website:%IMAGE_VERSION%>> build-info.txt
                     @docker image inspect ^
                     hardhat-website:%IMAGE_VERSION% ^
                     --format "Image ID: {{.Id}}" >> build-info.txt
                 '''
 
-                archiveArtifacts(
-                    artifacts: 'build-info.txt',
-                    fingerprint: true
-                )
+                archiveArtifacts(artifacts: 'build-info.txt', fingerprint: true)
+
+                bat 'docker images hardhat-website'
             }
         }
 
