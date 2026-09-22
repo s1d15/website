@@ -53,10 +53,12 @@ pipeline {
                     if exist coverage.xml del /q coverage.xml
                 '''
 
-                bat 'docker compose exec -T web python -m coverage erase'
+                bat 'docker compose up -d db'
+
+                bat 'docker compose run --rm web python -m coverage erase'
 
                 bat '''
-                    docker compose exec -T web ^
+                    docker compose run --rm web ^
                     python -m coverage run ^
                     --source=home,utils ^
                     manage.py test ^
@@ -65,9 +67,9 @@ pipeline {
                     --testrunner=xmlrunner.extra.djangotestrunner.XMLTestRunner
                 '''
 
-                bat 'docker compose exec -T web python -m coverage report -m --fail-under=28'
+                bat 'docker compose run --rm web python -m coverage report -m --fail-under=28'
 
-                bat 'docker compose exec -T web python -m coverage xml -o /app/coverage.xml'
+                bat 'docker compose run --rm web python -m coverage xml -o /app/coverage.xml'
             }
 
             post {
