@@ -160,10 +160,13 @@ pipeline {
                 bat '''
                     docker run --rm ^
                     -v "%CD%:/work" ^
+                    -v trivy-cache:/root/.cache/trivy ^
                     aquasec/trivy:0.74.0 ^
                     image ^
                     --input /work/hardhat-image.tar ^
+                    --scanners vuln ^
                     --severity HIGH,CRITICAL ^
+                    --timeout 15m ^
                     --format json ^
                     --output /work/trivy-report.json ^
                     --exit-code 0
