@@ -107,6 +107,20 @@ pipeline {
             }
         }
 
+
+        stage('Code Quality') {
+            steps {
+                script {
+                    env.SCANNER_HOME = tool 'SonarScanner'
+                }
+
+                withSonarQubeEnv('SonarQube') {
+                    bat '"%SCANNER_HOME%\\bin\\sonar-scanner.bat"'
+                }
+            }
+        }
+
+
         stage('Quality Gate') {
             steps {
                 timeout(time: 5, unit: 'MINUTES') {
@@ -114,7 +128,6 @@ pipeline {
                 }
             }
         }
-
         stage('Security') {
             steps {
                 bat 'docker compose run --rm -e SECRET_KEY=jenkins-test-secret-key web bandit -r home utils -x home/tests -ll'
