@@ -128,32 +128,63 @@ pipeline {
                 }
             }
         }
+
         stage('Security') {
             steps {
-                bat 'docker compose run --rm -e SECRET_KEY=jenkins-test-secret-key web bandit -r home utils -x home/tests -ll'
+                echo "Running source-code and container security analysis"
 
-            bat '''
-                docker run --rm ^
-                -v /var/run/docker.sock:/var/run/docker.sock ^
-                aquasec/trivy:0.74.0 ^
-                image ^
-                --severity HIGH,CRITICAL ^
-                hardhat-website:ci
-            '''
+                bat '''
+                    docker compose run --rm ^
+                    -e SECRET_KEY=jenkins-test-secret-key ^
+                    web ^
+                    bandit -r home utils ^
+                    -x home/tests ^
+                    -f json ^
+                    -o /app/bandit-report.json ^
+                    --exit-zero
+                '''
+
+                bat '''
+                    docker compose run --rm ^
+                    -e SECRET_KEY=jenkins-test-secret-key ^
+                    web ^
+                    bandit -r home utils ^
+                    -x home/tests ^
+                    -ll
+                '''
+
+                bat 'docker pull %REGISTRY_IMAGE%'
+
+                bat 'docker save %REGISTRY_IMAGE% -o hardhat-image.tar'
+
+                bat '''
+                    docker run --rm ^
+                    -v "%CD%:/work" ^
+                    aquasec/trivy:0.74.0 ^
+                    image ^
+                    --input /work/hardhat-image.tar ^
+                    --severity HIGH,CRITICAL ^
+                    --format json ^
+                    --output /work/trivy-report.json ^
+                    --exit-code 0
+                '''
+
+                bat '''
+                    if exist hardhat-image.tar del /q hardhat-image.tar
+                '''
             }
-        }
 
-        stage('Deploy') {
-            steps {
-                echo "Deploying ${env.REGISTRY_IMAGE} to staging"
+            post {
+                always {
+                    archiveArtifacts(
+                        artifacts: 'bandit-report.json,trivy-report.json',
+                        fingerprint: true,
+                        allowEmptyArchive: true
+                    )
 
-                withEnv(["DEPLOY_IMAGE=${env.REGISTRY_IMAGE}"]) {
-
-                    bat 'docker pull %DEPLOY_IMAGE%'
-
-                    bat 'docker compose -p hardhat-staging -f docker-compose.staging.yml up -d --no-build'
-
-                    bat 'curl --fail --retry 12 --retry-delay 5 --retry-all-errors http://localhost:8082/'
+                    bat '''
+                        if exist hardhat-image.tar del /q hardhat-image.tar
+                    '''
                 }
             }
         }
