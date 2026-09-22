@@ -4,7 +4,34 @@ pipeline {
     stages {
         stage('Build') {
             steps {
-                bat 'docker compose build'
+                script {
+                    env.GIT_COMMIT_SHORT = bat(
+                        script: '@git rev-parse --short=7 HEAD',
+                        returnStdout: true
+                    ).trim()
+
+                    env.IMAGE_VERSION = "build-${env.BUILD_NUMBER}-${env.GIT_COMMIT_SHORT}"
+
+                    echo "Building image version: ${env.IMAGE_VERSION}"
+                }
+
+                bat 'docker compose build web'
+
+                bat 'docker tag hardhat-website:ci hardhat-website:%IMAGE_VERSION%'
+
+                bat '''
+                    @echo Jenkins Build: %BUILD_NUMBER%> build-info.txt
+                    @echo Git Commit: %GIT_COMMIT_SHORT%>> build-info.txt
+                    @echo Docker Image: hardhat-website:%IMAGE_VERSION%>> build-info.txt
+                    @docker image inspect ^
+                    hardhat-website:%IMAGE_VERSION% ^
+                    --format "Image ID: {{.Id}}" >> build-info.txt
+                '''
+
+                archiveArtifacts(
+                    artifacts: 'build-info.txt',
+                    fingerprint: true
+                )
             }
         }
 
