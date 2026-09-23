@@ -172,9 +172,7 @@ pipeline {
                     --exit-code 0
                 '''
 
-                bat '''
-                    if exist hardhat-image.tar del /q hardhat-image.tar
-                '''
+                bat 'if exist hardhat-image.tar del /q hardhat-image.tar'
             }
 
             post {
@@ -185,22 +183,80 @@ pipeline {
                         allowEmptyArchive: true
                     )
 
-                    bat '''
-                        if exist hardhat-image.tar del /q hardhat-image.tar
-                    '''
+                    bat 'if exist hardhat-image.tar del /q hardhat-image.tar'
                 }
             }
         }
+        stage('Deploy') {
+            steps {
+                script {
+                    echo "Deploying ${env.REGISTRY_IMAGE} to staging"
 
+                    def currentStagingContainer = bat(
+                        script: '@docker compose -p hardhat-staging -f docker-compose.staging.yml ps -q web',
+                        returnStdout: true
+                    ).trim()
+
+                    if (currentStagingContainer) {
+                        env.PREVIOUS_STAGING_IMAGE = bat(
+                            script: "@docker inspect --format=\"{{.Config.Image}}\" ${currentStagingContainer}",
+                            returnStdout: true
+                        ).trim()
+
+                        echo "Previous staging image: ${env.PREVIOUS_STAGING_IMAGE}"
+                    } else {
+                        env.PREVIOUS_STAGING_IMAGE = ""
+                        echo "No previous staging deployment found."
+                    }
+                }
+
+                bat 'docker pull %REGISTRY_IMAGE%'
+
+                withEnv(["DEPLOY_IMAGE=${env.REGISTRY_IMAGE}"]) {
+                    bat 'docker compose -p hardhat-staging -f docker-compose.staging.yml up -d --no-build'
+                }
+
+                bat 'docker compose -p hardhat-staging -f docker-compose.staging.yml ps'
+
+                script {
+                    def healthStatus = bat(
+                        script: '@curl --fail --retry 12 --retry-delay 5 --retry-all-errors http://localhost:8082/',
+                        returnStatus: true
+                    )
+
+                    if (healthStatus != 0) {
+                        echo "Staging deployment failed health check."
+
+                        if (env.PREVIOUS_STAGING_IMAGE?.trim()) {
+                            echo "Rolling back to ${env.PREVIOUS_STAGING_IMAGE}"
+
+                            withEnv(["DEPLOY_IMAGE=${env.PREVIOUS_STAGING_IMAGE}"]) {
+                                bat 'docker compose -p hardhat-staging -f docker-compose.staging.yml up -d --no-build'
+                            }
+
+                            bat 'curl --fail --retry 12 --retry-delay 5 --retry-all-errors http://localhost:8082/'
+
+                            echo "Rollback completed successfully."
+                        } else {
+                            echo "No previous staging image available for rollback."
+                        }
+
+                        error("Staging deployment failed.")
+                    }
+
+                    echo "Staging health check passed."
+                }
+            }
+        }
         stage('Release') {
             steps {
                 script {
                     env.RELEASE_TAG = "release-${env.BUILD_NUMBER}"
-
                     env.RELEASE_IMAGE = "localhost:5000/hardhat-website:${env.RELEASE_TAG}"
 
-                    echo "Promoting ${env.REGISTRY_IMAGE}"
-                    echo "Release image: ${env.RELEASE_IMAGE}"
+                    echo "Promoting tested artifact:"
+                    echo "Source: ${env.REGISTRY_IMAGE}"
+                    echo "Release: ${env.RELEASE_IMAGE}"
                 }
 
                 bat 'docker pull %REGISTRY_IMAGE%'
@@ -210,25 +266,27 @@ pipeline {
                 bat 'docker push %RELEASE_IMAGE%'
 
                 withEnv(["DEPLOY_IMAGE=${env.RELEASE_IMAGE}"]) {
-
                     bat 'docker pull %DEPLOY_IMAGE%'
 
                     bat 'docker compose -p hardhat-production -f docker-compose.production.yml up -d --no-build'
-
-                    bat 'curl --fail --retry 12 --retry-delay 5 --retry-all-errors http://localhost:8083/'
                 }
+
+                bat 'docker compose -p hardhat-production -f docker-compose.production.yml ps'
+
+                bat 'curl --fail --retry 12 --retry-delay 5 --retry-all-errors http://localhost:8083/'
 
                 bat '''
                     @echo Jenkins Build: %BUILD_NUMBER%> release-info.txt
                     @echo Git Commit: %GIT_COMMIT_SHORT%>> release-info.txt
                     @echo Source Artifact: %REGISTRY_IMAGE%>> release-info.txt
+                    @echo Release Tag: %RELEASE_TAG%>> release-info.txt
                     @echo Release Artifact: %RELEASE_IMAGE%>> release-info.txt
                     @docker image inspect ^
                     %RELEASE_IMAGE% ^
                     --format "Image ID: {{.Id}}" >> release-info.txt
                 '''
 
-                archiveArtifacts(artifacts: 'release-info.txt',fingerprint: true)
+                archiveArtifacts(artifacts: 'release-info.txt', fingerprint: true)
             }
         }
 
