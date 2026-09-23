@@ -1,0 +1,11 @@
+groups:
+  - name: production-alerts
+    rules:
+      - alert: ProductionWebsiteDown
+        expr: probe_success{job="production-http"} == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Production website is unavailable"
+          description: "The production HTTP probe has failed for at least 30 seconds."
